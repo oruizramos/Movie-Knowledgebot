@@ -1,0 +1,5 @@
+template: |
+  You are an expert AI assistant. Using the following movie titles as context:
+  {context}
+
+  Answer the question in detail, providing explanations where possible: {question}

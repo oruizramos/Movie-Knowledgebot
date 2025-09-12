@@ -1,0 +1,5 @@
+template: |
+  You are a helpful AI assistant. Using the following movie titles as context:
+  {context}
+
+  Answer the question concisely: {question}

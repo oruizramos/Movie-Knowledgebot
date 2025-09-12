@@ -1,0 +1,5 @@
+template: |
+  You are an AI assistant. Using the following movie titles as context:
+  {context}
+
+  Answer the question using bullet points: {question}
