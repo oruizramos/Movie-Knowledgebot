@@ -51,6 +51,17 @@ async def root():
         "mode": "OpenAI" if OPENAI_ENABLED else "Mock"
     }
 
+# Banner endpoint for frontend
+@app.get("/banner")
+async def get_banner():
+    """
+    Returns top and bottom banners for the frontend.
+    """
+    top = "✅ OpenAI Mode Enabled — real API calls" if OPENAI_ENABLED else "⚠️ Mock Mode Enabled — simulated answers"
+    bottom = "KnowledgeBot demo powered by FastAPI + React"
+    return {"top": top, "bottom": bottom}
+
+# Ask endpoint
 @app.post("/ask")
 async def ask_question(
     question: str = Form(...),
