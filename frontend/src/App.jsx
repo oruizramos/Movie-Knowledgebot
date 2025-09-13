@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from "react"; 
+// src/App.jsx
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import QuestionInput from "./components/QuestionInput";
 import AnswerDisplay from "./components/AnswerDisplay";
+
+const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 function App() {
   const [answer, setAnswer] = useState("");
@@ -9,18 +12,34 @@ function App() {
   const [lastQuestion, setLastQuestion] = useState("");
   const [lastPromptType, setLastPromptType] = useState("concise");
 
-  // Fetch backend mode on load
+  // New: banners
+  const [topBanner, setTopBanner] = useState("");
+  const [bottomBanner, setBottomBanner] = useState("");
+
+  // Fetch backend mode + banners on load
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const res = await axios.get("http://localhost:8000/");
+        const res = await axios.get(`${API_BASE}/`);
         setBackendMode(res.data.mode);
       } catch (err) {
-        console.error(err);
+        console.error("status fetch error", err);
         setBackendMode("Unknown");
       }
     };
+
+    const fetchBanner = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/banner`);
+        setTopBanner(res.data.top);
+        setBottomBanner(res.data.bottom);
+      } catch (err) {
+        console.error("banner fetch failed", err);
+      }
+    };
+
     fetchStatus();
+    fetchBanner();
   }, []);
 
   const handleAsk = async (question, promptType) => {
@@ -32,9 +51,8 @@ function App() {
     formData.append("prompt_type", promptType);
 
     try {
-      const response = await axios.post("http://localhost:8000/ask", formData);
+      const response = await axios.post(`${API_BASE}/ask`, formData);
 
-      // Always update backendMode from this request
       const newMode = response.data.mode || "Mock";
 
       setAnswer(
@@ -43,10 +61,14 @@ function App() {
           : response.data.answer
       );
 
-      // Force state update to refresh banners even if mode didn't change technically
-      setBackendMode(null);  
+      // Force re-render for banners and mode
+      setBackendMode(null);
       setTimeout(() => setBackendMode(newMode), 0);
 
+      // Refresh banners
+      const bannerRes = await axios.get(`${API_BASE}/banner`);
+      setTopBanner(bannerRes.data.top);
+      setBottomBanner(bannerRes.data.bottom);
     } catch (error) {
       setAnswer("Error contacting backend. Make sure it is running.");
       setBackendMode("Unknown");
@@ -60,10 +82,9 @@ function App() {
       const formData = new FormData();
       formData.append("question", lastQuestion);
       formData.append("prompt_type", lastPromptType);
-      formData.append("force_openai", "true"); // backend should interpret this
+      formData.append("force_openai", "true");
 
-      const response = await axios.post("http://localhost:8000/ask", formData);
-
+      const response = await axios.post(`${API_BASE}/ask`, formData);
       const newMode = response.data.mode || "Mock";
 
       setAnswer(
@@ -75,6 +96,9 @@ function App() {
       setBackendMode(null);
       setTimeout(() => setBackendMode(newMode), 0);
 
+      const bannerRes = await axios.get(`${API_BASE}/banner`);
+      setTopBanner(bannerRes.data.top);
+      setBottomBanner(bannerRes.data.bottom);
     } catch (error) {
       setAnswer("Error contacting backend. Make sure it is running.");
       console.error(error);
@@ -83,8 +107,8 @@ function App() {
 
   return (
     <div className="min-h-screen flex flex-col items-center p-4">
-      {/* Dynamic Banner */}
-      {backendMode && (
+      {/* Dynamic Banner from backend */}
+      {topBanner && (
         <div
           className={`w-full text-center py-2 mb-4 rounded ${
             backendMode === "OpenAI"
@@ -94,11 +118,7 @@ function App() {
               : "bg-gray-200 text-gray-800"
           }`}
         >
-          {backendMode === "OpenAI"
-            ? "✅ OpenAI Mode Enabled — real API calls"
-            : backendMode === "Mock"
-            ? "⚠️ Mock Mode Enabled — simulated answers"
-            : "❓ Backend Mode Unknown"}
+          {topBanner}
         </div>
       )}
 
@@ -107,6 +127,7 @@ function App() {
       <AnswerDisplay
         answer={answer}
         mode={backendMode}
+        bottomBanner={bottomBanner}
         onRetryOpenAI={backendMode === "Mock" ? retryOpenAI : null}
       />
     </div>
